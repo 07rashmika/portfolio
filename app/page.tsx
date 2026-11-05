@@ -1,69 +1,52 @@
-import Image from "next/image";
+// Phase 0 placeholder: shows the theme on a static shelf.
+// Replaced by <Library /> (components/library) in Phase 2.
+
+const books = [
+  { title: "About Me", color: "bg-spine-oxblood", height: "h-64" },
+  { title: "Projects", color: "bg-spine-forest", height: "h-72" },
+  { title: "Experience", color: "bg-spine-navy", height: "h-68" },
+  { title: "Skills", color: "bg-spine-ochre", height: "h-60" },
+  { title: "Education", color: "bg-spine-plum", height: "h-70" },
+  { title: "Awards", color: "bg-spine-teal", height: "h-64" },
+  { title: "Notes", color: "bg-spine-tan", height: "h-58" },
+  { title: "Contact", color: "bg-spine-red", height: "h-66" },
+];
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <main className="flex flex-1 flex-col items-center justify-center gap-10 px-4 py-16">
+      <header className="text-center">
+        <h1 className="font-display text-4xl tracking-widest text-brass sm:text-5xl">The Bookshelf</h1>
+        <p className="mt-3 font-heading text-xl italic text-paper-shade">Pick a book and turn its pages.</p>
+      </header>
+
+      <section
+        aria-label="Bookshelf"
+        className="wood w-full max-w-4xl rounded-sm border-8 border-wood-dark p-4 shadow-warm"
+      >
+        <div className="flex items-end gap-1.5 overflow-x-auto px-2">
+          {books.map((book) => (
+            <div
+              key={book.title}
+              className={`${book.color} ${book.height} flex w-12 shrink-0 items-center justify-center rounded-t-sm border-x border-black/30 shadow-warm`}
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              <span className="font-display text-sm tracking-widest text-brass [writing-mode:vertical-rl]">
+                {book.title}
+              </span>
+            </div>
+          ))}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+        {/* shelf plank */}
+        <div className="h-4 bg-wood-light shadow-warm" />
+      </section>
+
+      <article className="paper max-w-xl rounded-sm p-8 shadow-warm">
+        <h2 className="font-heading text-3xl font-semibold">Chapter I</h2>
+        <p className="mt-3 text-lg leading-relaxed">
+          Body text in EB Garamond on parchment, with <span className="text-ink-faded">faded ink</span> for
+          captions and <code className="font-mono text-sm">mono</code> for tech tags.
+        </p>
+      </article>
+    </main>
   );
 }
