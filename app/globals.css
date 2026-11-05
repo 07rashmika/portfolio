@@ -32,6 +32,24 @@
   /* light & shadow */
   --lamp-glow: rgb(255 217 160 / 0.1);
   --shadow-warm: rgb(20 10 4 / 0.5);
+
+  /* shelf sizing: tallest book, and spine widths relative to full size */
+  --book-max-h: 11rem;
+  --spine-scale: 0.75;
+}
+
+@media (width >= 40rem) {
+  :root {
+    --book-max-h: 13rem;
+    --spine-scale: 0.9;
+  }
+}
+
+@media (width >= 64rem) {
+  :root {
+    --book-max-h: 15rem;
+    --spine-scale: 1;
+  }
 }
 
 /* Exposes the tokens as Tailwind utilities: bg-wood-dark, text-ink, border-brass, font-display, … */
@@ -79,24 +97,94 @@ body {
 }
 
 /* ── Reusable surfaces ──────────────────────────────────────── */
+/* In the components layer so utilities like bg-wood-dark can override the colour. */
+@layer components {
+  /* Wood grain built from gradients; swap for a texture image later if wanted. */
+  .wood {
+    background-color: var(--wood-mid);
+    background-image:
+      repeating-linear-gradient(
+        90deg,
+        rgb(0 0 0 / 0.06) 0 2px,
+        transparent 2px 9px,
+        rgb(255 255 255 / 0.03) 9px 11px,
+        transparent 11px 23px
+      ),
+      linear-gradient(180deg, rgb(255 255 255 / 0.05), rgb(0 0 0 / 0.15));
+  }
 
-/* Wood grain built from gradients; swap for a texture image later if wanted. */
-.wood {
-  background-color: var(--wood-mid);
-  background-image:
-    repeating-linear-gradient(
-      90deg,
-      rgb(0 0 0 / 0.06) 0 2px,
-      transparent 2px 9px,
-      rgb(255 255 255 / 0.03) 9px 11px,
-      transparent 11px 23px
-    ),
-    linear-gradient(180deg, rgb(255 255 255 / 0.05), rgb(0 0 0 / 0.15));
+  .paper {
+    background-color: var(--paper);
+    color: var(--ink);
+  }
 }
 
-.paper {
-  background-color: var(--paper);
-  color: var(--ink);
+/* ── Bookshelf ──────────────────────────────────────────────── */
+
+/* Depth: the back panel is shaded under the plank above and at the sides. */
+.shelf-back {
+  box-shadow:
+    inset 0 14px 18px -6px rgb(0 0 0 / 0.6),
+    inset 12px 0 16px -8px rgb(0 0 0 / 0.45),
+    inset -12px 0 16px -8px rgb(0 0 0 / 0.45);
+}
+
+.shelf-lamp-light {
+  background: radial-gradient(ellipse at 18% 0%, rgb(255 217 160 / 0.14), transparent 60%);
+}
+
+.spine-leather {
+  background: linear-gradient(
+    90deg,
+    rgb(0 0 0 / 0.4) 0%,
+    rgb(255 255 255 / 0.1) 22%,
+    rgb(255 255 255 / 0.03) 50%,
+    rgb(0 0 0 / 0.2) 82%,
+    rgb(0 0 0 / 0.5) 100%
+  );
+}
+
+/* Two thin gold lines, like the raised bands on an old binding. */
+.spine-band {
+  position: absolute;
+  inset-inline: 3px;
+  height: 6px;
+  border-block: 1.5px solid var(--brass);
+  opacity: 0.75;
+}
+
+/* Gold-foil stamping: brass text pressed into the leather. */
+.spine-title {
+  color: var(--brass);
+  writing-mode: vertical-rl;
+  text-shadow:
+    0 1px 0 rgb(0 0 0 / 0.55),
+    0 -1px 0 rgb(255 230 170 / 0.15);
+  transition: color 200ms;
+}
+
+.group:hover .spine-title,
+.group:focus-visible .spine-title {
+  color: var(--brass-bright);
+}
+
+.candle-flame {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: flicker 2.6s ease-in-out infinite;
+}
+
+@keyframes flicker {
+  0%,
+  100% {
+    transform: scale(1, 1) rotate(-1deg);
+  }
+  35% {
+    transform: scale(0.94, 1.06) rotate(1.5deg);
+  }
+  70% {
+    transform: scale(1.03, 0.96) rotate(-0.5deg);
+  }
 }
 
 :focus-visible {
@@ -109,6 +197,7 @@ body {
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
 }

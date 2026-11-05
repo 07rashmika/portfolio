@@ -159,9 +159,11 @@ export type Book = {
 };
 ```
 
-Spine thickness isn't stored; it's calculated from the page count (Phase 2).
+Spine thickness isn't stored. `spineWidth()` in `lib/shelf.ts` calculates it from the page count (42–72px at full size).
 
-Pages are written as data in `content/books/*.ts`, and `content/books/index.ts` lists the books in shelf order. `lib/paginate.ts` turns a book into pages and spreads:
+Pages are written as data in `content/books/*.ts`. **`content/shelf.ts`** decides where everything stands: each shelf is a row of books, decorations (`plant`, `candle`, `book-stack`) and `space` (an empty stretch that fills the leftover width), and a book can `lean` against the one on its left. `content/books/index.ts` builds the `books` list from the shelves, so a book can't exist without a place on the shelf. `content/shelf.test.ts` checks that no book is placed twice and that a leaning book has something to lean on.
+
+`lib/paginate.ts` turns a book into pages and spreads:
 
 - **`paginate(book)`** flattens it into cover → table of contents → chapter pages → back cover. Each page has an `index` (its position, used by `?page=`) and a printed `number`. The table of contents points at each chapter's first page.
 - **`toSpreads(pages)`** pairs pages the way a real book opens: the closed cover alone on the right, the table of contents facing the inside of the front cover, then pairs, and the closed back cover alone on the left.
@@ -176,7 +178,7 @@ Pages are written as data in `content/books/*.ts`, and `content/books/index.ts` 
 ### 4.1 Shelf (idle state)
 - Books stand on one or two shelves with small differences in height, thickness and tilt. One book may lean against another.
 - Decorations between books (a plant, candle, globe, bookends) make it look like a real shelf. These are decorative and hidden from screen readers.
-- **Hover/focus:** the book slides about 12px toward the viewer, rises slightly, and a tooltip-style label appears. A soft wood "tock" sound is optional and off by default.
+- **Hover/focus:** the book rises about 14px and grows slightly (a spring animation), its gold title brightens, and on desktop a small plaque with the book's subtitle appears above it. With reduced motion, the book only brightens. A soft wood "tock" sound is optional and off by default.
 
 ### 4.2 Opening a book (≈ 900 ms total)
 1. **Pull out** (0–250 ms): the book moves forward (`translateZ`/`scale`) and the other books dim.
@@ -195,9 +197,11 @@ Closing reverses these steps, and the book goes back to its slot.
 ### 4.4 Responsive behaviour
 | Viewport | Shelf | Open book |
 |---|---|---|
-| ≥ 1024px | Full bookshelf, two shelves | **Two-page spread** |
-| 640–1023px | One shelf that scrolls horizontally | Two-page spread, scaled down |
-| < 640px | Books stacked as tappable spines in a vertical shelf, or a horizontal scroll | **Single page**, swipe to turn |
+| ≥ 1024px | Full bookshelf, two shelves, subtitle plaques on hover | **Two-page spread** |
+| 640–1023px | Same shelves, books ~13rem tall, spines at 90% width | Two-page spread, scaled down |
+| < 640px | Same shelves, books ~11rem tall, spines at 75% width, the book stack hidden; a shelf scrolls sideways if it ever gets too full | **Single page**, swipe to turn |
+
+Sizes come from two CSS variables in `app/globals.css`, `--book-max-h` and `--spine-scale`, which change at each breakpoint.
 
 ### 4.5 Accessibility (built in from the start)
 - Each book is a `<button>` with `aria-label="Open Projects book"`. The open book is a `role="dialog"` with a focus trap, `Esc` closes it, and focus returns to the spine.
@@ -247,9 +251,11 @@ portfolio/
 │  ├─ PlainView.tsx          # accessible "reading room" fallback
 │  └─ scene3d/               # (optional, Phase 6) R3F shelf scene
 ├─ content/
+│  ├─ shelf.ts               # which book/decoration stands where
 │  └─ books/                 # about.ts, projects.ts, experience.ts, ...
 ├─ lib/
 │  ├─ paginate.ts            # chapters → flat pages → spreads
+│  ├─ shelf.ts               # spine width from page count
 │  └─ useBookUrlState.ts
 ├─ types/book.ts
 ├─ public/
@@ -276,12 +282,13 @@ portfolio/
 - [x] `paginate.ts` with unit tests (cover/TOC/back-cover insertion, spread pairing, odd page counts)
 - [x] Vitest, plus content checks in `content/books/books.test.ts`
 
-### Phase 2 — Static bookshelf (1–2 days)
-- [ ] Shelf frame and planks with the wood texture and lighting
-- [ ] `BookSpine` with vertical title, foil effect, and different heights and widths
-- [ ] Hover and focus pull-out animation
-- [ ] Decorations
-- [ ] Responsive shelf layouts
+### Phase 2 — Static bookshelf ✅
+- [x] Shelf frame, crown, plinth and planks with wood grain, depth shading and lamp light
+- [x] `BookSpine` with vertical title, gold-foil effect, raised bands, and heights/widths from the content
+- [x] Hover and focus pull-out animation (brighten only with reduced motion), subtitle plaque on desktop
+- [x] Decorations: plant, candle with flickering flame, a stack of lying books
+- [x] Shelf layout in `content/shelf.ts`, including a leaning book
+- [x] Responsive sizing; placeholder books for the remaining six sections
 
 ### Phase 3 — Open and close a book (2 days)
 - [ ] `OpenBook` dialog with a backdrop
@@ -341,6 +348,10 @@ npm install three @react-three/fiber @react-three/drei
 1. Open `content/books/projects.ts`.
 2. Add a new `Chapter` with its pages.
 3. Save. The table of contents, page count, and spine thickness update automatically.
+
+### Adding a new book
+1. Create `content/books/<id>.ts` exporting a `Book`.
+2. Place it in `content/shelf.ts`, in whichever row and position you want.
 
 ---
 
