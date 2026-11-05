@@ -138,12 +138,14 @@ Every book also gets:
 
 ```ts
 // types/book.ts
+export type SpineColor = "oxblood" | "forest" | "navy" | "ochre" | "plum" | "teal" | "tan" | "red";
+
 export type Page =
-  | { kind: "text"; heading?: string; body: string }            // markdown string
+  | { kind: "text"; heading?: string; body: string }            // paragraphs separated by a blank line
   | { kind: "image"; src: string; alt: string; caption?: string }
-  | { kind: "project-summary"; title: string; summary: string; stack: string[]; links?: { label: string; href: string }[] }
+  | { kind: "project-summary"; title: string; year?: string; summary: string; stack: string[]; links?: Link[] }
   | { kind: "list"; heading: string; items: string[] }
-  | { kind: "contact" };
+  | { kind: "contact"; heading?: string; email: string; links: Link[] };
 
 export type Chapter = { id: string; title: string; pages: Page[] };
 
@@ -151,14 +153,21 @@ export type Book = {
   id: string;                 // "projects" — also used in the URL
   title: string;
   subtitle?: string;
-  spineColor: string;
-  height: number;             // small variation so the shelf doesn't look uniform (e.g. 0.85–1.0)
-  thickness: number;          // spine width, roughly based on page count
+  spineColor: SpineColor;     // one of the --spine-* theme tokens
+  height: number;             // small variation so the shelf doesn't look uniform (0.85–1)
   chapters: Chapter[];
 };
 ```
 
-Pages are written as data in `content/books/projects.ts` and similar files. A **pagination step** flattens chapters into a page list: cover → TOC → chapter pages → back cover. On desktop it pairs pages into two-page spreads.
+Spine thickness isn't stored; it's calculated from the page count (Phase 2).
+
+Pages are written as data in `content/books/*.ts`, and `content/books/index.ts` lists the books in shelf order. `lib/paginate.ts` turns a book into pages and spreads:
+
+- **`paginate(book)`** flattens it into cover → table of contents → chapter pages → back cover. Each page has an `index` (its position, used by `?page=`) and a printed `number`. The table of contents points at each chapter's first page.
+- **`toSpreads(pages)`** pairs pages the way a real book opens: the closed cover alone on the right, the table of contents facing the inside of the front cover, then pairs, and the closed back cover alone on the left.
+- **`spreadIndexOf(spreads, pageIndex)`** finds which spread shows a page, so `?page=7` opens the right spread on desktop.
+
+`content/books/books.test.ts` checks the content itself (unique, URL-safe ids, no empty chapters, heights in range), so a typo in a book file fails `npm test` instead of breaking the site.
 
 ---
 
@@ -261,10 +270,11 @@ portfolio/
 - [x] Theme tokens and Tailwind utilities in `app/globals.css`
 - [x] Placeholder themed shelf on `/`
 
-### Phase 1 — Content model (½ day)
-- [ ] Define the types in `types/book.ts`
-- [ ] Write real content for **About** and **Projects** first (2–3 projects is enough to start)
-- [ ] Write `paginate.ts` with unit tests (cover/TOC/back-cover insertion, spread pairing, odd page counts)
+### Phase 1 — Content model ✅
+- [x] Define the types in `types/book.ts`
+- [x] **About** and **Projects** books (placeholder text, replace with your own; 2–3 projects is enough to start)
+- [x] `paginate.ts` with unit tests (cover/TOC/back-cover insertion, spread pairing, odd page counts)
+- [x] Vitest, plus content checks in `content/books/books.test.ts`
 
 ### Phase 2 — Static bookshelf (1–2 days)
 - [ ] Shelf frame and planks with the wood texture and lighting
@@ -319,8 +329,10 @@ npm run dev
 Open http://localhost:3000.
 
 ```bash
-npm run lint     # ESLint
-npm run build    # production build
+npm run lint        # ESLint
+npm test            # unit tests (Vitest)
+npm run test:watch  # tests in watch mode
+npm run build       # production build
 # optional, Phase 6:
 npm install three @react-three/fiber @react-three/drei
 ```
