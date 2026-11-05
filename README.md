@@ -180,12 +180,15 @@ Pages are written as data in `content/books/*.ts`. **`content/shelf.ts`** decide
 - Decorations between books (a plant, candle, globe, bookends) make it look like a real shelf. These are decorative and hidden from screen readers.
 - **Hover/focus:** the book rises about 14px and grows slightly (a spring animation), its gold title brightens, and on desktop a small plaque with the book's subtitle appears above it. With reduced motion, the book only brightens. A soft wood "tock" sound is optional and off by default.
 
-### 4.2 Opening a book (≈ 900 ms total)
-1. **Pull out** (0–250 ms): the book moves forward (`translateZ`/`scale`) and the other books dim.
-2. **Fly and turn** (250–600 ms): using Motion's shared `layoutId`, the book moves from its place on the shelf to the centre of the screen while it rotates `rotateY(-90° → 0°)` so the cover faces the viewer. The background blurs or darkens.
-3. **Open cover** (600–900 ms): the front cover rotates on its left edge (`rotateY(0 → -180°)`, `transform-origin: left`) to show the first spread.
+### 4.2 Opening a book (≈ 1.15 s total)
+The open book is a real 3D box (`components/book/OpenBook.tsx`): a spine face, a page block, and a front cover hinged on the spine. Its transform origin is the middle of the spine, so it turns around its own spine like a book taken off a shelf. All positions come from `lib/bookLayout.ts`.
 
-Closing reverses these steps, and the book goes back to its slot.
+1. **Fly and turn** (0–600 ms): the box starts turned `rotateY(90°)` and scaled down so its spine sits exactly over the spine on the shelf (same size, same lean), and the shelf spine is hidden. It flies to the centre while turning to `rotateY(0°)`, cover facing the viewer. The background darkens and blurs.
+2. **Open cover** (600–1150 ms): the cover swings open on its hinge (`rotateY(0 → -180°)`). On a two-page spread the book also slides right by half a page so both pages end up centred; in single-page mode the cover swings off-screen to the left.
+
+Closing reverses these steps, landing on the spine's current position (re-measured, in case the window changed), and the spine reappears in the same frame. With reduced motion, the book fades in and out instead.
+
+The spine artwork (`SpineFace`) is shared by the shelf and the 3D book and sized in container units, so the hand-off from shelf to flying book is seamless.
 
 ### 4.3 Turning pages
 - Each leaf is a `div` with a front and a back face, `preserve-3d`, rotating around the spine.
@@ -204,7 +207,7 @@ Closing reverses these steps, and the book goes back to its slot.
 Sizes come from two CSS variables in `app/globals.css`, `--book-max-h` and `--spine-scale`, which change at each breakpoint.
 
 ### 4.5 Accessibility (built in from the start)
-- Each book is a `<button>` with `aria-label="Open Projects book"`. The open book is a `role="dialog"` with a focus trap, `Esc` closes it, and focus returns to the spine.
+- Each book is a `<button>` with `aria-label="Open Projects book"`. The open book is a native modal `<dialog>`, so the browser traps focus and makes the shelf behind it inert. `Esc`, the "Return to shelf" button, clicking the backdrop and the browser back button all close it, and focus returns to the spine.
 - Page changes are announced through an `aria-live="polite"` region ("Page 4 of 18 — Project: Weather App").
 - `prefers-reduced-motion`: the fly and flip animations are replaced with short crossfades.
 - Text is real HTML, never a canvas or image, so it can be selected, searched, and translated.
@@ -219,7 +222,15 @@ There is one route, `/`, and the open book and page are stored in the query stri
 /?book=projects&page=7     → Projects book, page 7
 ```
 
-This makes links shareable, lets the browser back button close the book, and allows deep-linking a specific project in a CV. Use `useSearchParams` (inside a `<Suspense>` boundary) with `router.replace` for page turns and `router.push` for opening or closing a book.
+This makes links shareable, lets the browser back button close the book, and allows deep-linking a specific project in a CV.
+
+`components/library/Library.tsx` owns this. It updates the URL with the browser's own `history.pushState`/`replaceState`, which Next.js keeps in sync with `useSearchParams` without asking the server for the page again:
+
+- **Opening** pushes `?book=<id>`.
+- **Closing** goes `history.back()` if the book was opened from the shelf, so history doesn't pile up. On a deep link there may be nothing to go back to, so it replaces the URL with `/` instead.
+- **Unknown ids** (`?book=nope`) just show the shelf.
+
+Only the small part that reads the URL sits inside `<Suspense>`, so the shelf is still prerendered as static HTML.
 
 ---
 
@@ -239,7 +250,9 @@ portfolio/
 │  │  ├─ BookSpine.tsx       # a book on the shelf (hover, click)
 │  │  └─ Decor.tsx           # plant, candle, bookends (SVG)
 │  ├─ book/
-│  │  ├─ OpenBook.tsx        # dialog overlay, fly-in/out animation, cover
+│  │  ├─ OpenBook.tsx        # dialog overlay, 3D book box, fly-in/out animation
+│  │  ├─ SpineFace.tsx       # spine artwork, shared with the shelf
+│  │  ├─ CoverFace.tsx       # front cover artwork
 │  │  ├─ PageFlipper.tsx     # spreads, flip animation, drag/swipe/keys
 │  │  ├─ Leaf.tsx            # one physical leaf (front + back face)
 │  │  ├─ TableOfContents.tsx
@@ -256,7 +269,7 @@ portfolio/
 ├─ lib/
 │  ├─ paginate.ts            # chapters → flat pages → spreads
 │  ├─ shelf.ts               # spine width from page count
-│  └─ useBookUrlState.ts
+│  └─ bookLayout.ts          # open-book size and poses (shelf, closed, open)
 ├─ types/book.ts
 ├─ public/
 │  ├─ textures/              # wood.webp, paper.webp (compressed)
@@ -290,11 +303,12 @@ portfolio/
 - [x] Shelf layout in `content/shelf.ts`, including a leaning book
 - [x] Responsive sizing; placeholder books for the remaining six sections
 
-### Phase 3 — Open and close a book (2 days)
-- [ ] `OpenBook` dialog with a backdrop
-- [ ] Shared-layout fly animation from the spine to the centre, plus cover rotation
-- [ ] Close animation back to the shelf slot
-- [ ] URL sync (`?book=`), back button, Esc, focus trap
+### Phase 3 — Open and close a book ✅
+- [x] `OpenBook` as a native `<dialog>` with a blurred backdrop and "Return to shelf" button
+- [x] 3D book box that flies from the spine to the centre, turns, and opens its cover (spread or single page)
+- [x] Close animation back to the shelf slot; reduced-motion fade
+- [x] URL sync (`?book=`), back button, Esc, backdrop click, focus returned to the spine
+- [x] Opens on the table of contents; `lib/bookLayout.ts` with tests
 
 ### Phase 4 — Page turning (2–3 days, the core of the site)
 - [ ] `Leaf` with front and back faces and `PageFlipper` handling the stack order (z-index) of leaves
@@ -360,5 +374,6 @@ npm install three @react-three/fiber @react-three/drei
 - **Text readability comes first.** The book is the content. Keep the page body at 17px or more, with high contrast and at most about 60–70 characters per line.
 - **Don't hide information behind the novelty.** The plain view and deep links make sure recruiters can still find everything in seconds.
 - **Watch the 3D stacking context.** `overflow: hidden`, `filter`, or `opacity` on a parent of `preserve-3d` elements flattens the 3D effect. Put shadows and blur on sibling layers.
+- **No big shadows on moving 3D faces.** A large `box-shadow` on the cover or a page confuses Chrome's 3D layer sorting, and the pages show through the opening cover near the spine. The open book's shadows sit on flat planes at the back of the book instead.
 - **Animate only `transform` and `opacity`** to keep page turns at 60fps, and use `will-change: transform` only on the leaf that is turning.
 - **Images on pages:** give them fixed aspect ratios so the page layout doesn't jump.

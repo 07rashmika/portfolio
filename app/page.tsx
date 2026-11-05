@@ -1,4 +1,5 @@
 import { Bookshelf } from "@/components/library/Bookshelf";
+import { Library } from "@/components/library/Library";
 
 export default function Home() {
   return (
@@ -8,7 +9,9 @@ export default function Home() {
         <p className="mt-2 font-heading text-lg italic text-paper-shade sm:text-xl">Pick a book and turn its pages.</p>
       </header>
 
-      <Bookshelf />
+      <Library>
+        <Bookshelf />
+      </Library>
     </main>
   );
 }

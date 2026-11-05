@@ -144,17 +144,25 @@ body {
   );
 }
 
+/* Spine artwork is sized in container units (cqh = 1% of the spine's height),
+   so it looks the same on the shelf and on the full-size book flying off it. */
+.spine-face {
+  container-type: size;
+}
+
 /* Two thin gold lines, like the raised bands on an old binding. */
 .spine-band {
   position: absolute;
-  inset-inline: 3px;
-  height: 6px;
-  border-block: 1.5px solid var(--brass);
+  inset-inline: 6cqw;
+  height: 2.6cqh;
+  border-block: 0.65cqh solid var(--brass);
   opacity: 0.75;
 }
 
 /* Gold-foil stamping: brass text pressed into the leather. */
 .spine-title {
+  font-size: 6.5cqh;
+  letter-spacing: 0.18em;
   color: var(--brass);
   writing-mode: vertical-rl;
   text-shadow:
@@ -163,9 +171,70 @@ body {
   transition: color 200ms;
 }
 
+.spine-ornament {
+  font-size: 4.2cqh;
+  letter-spacing: 0;
+}
+
 .group:hover .spine-title,
 .group:focus-visible .spine-title {
   color: var(--brass-bright);
+}
+
+/* ── Open book ──────────────────────────────────────────────── */
+
+.book-box {
+  transform-style: preserve-3d;
+}
+
+/* Each side of the 3D book only shows from the front. */
+.book-face {
+  backface-visibility: hidden;
+}
+
+.book-shadow {
+  box-shadow: 0 24px 60px rgb(10 5 2 / 0.55);
+}
+
+.cover-face {
+  container-type: size;
+}
+
+.cover-leather {
+  background:
+    radial-gradient(ellipse at 35% 30%, rgb(255 255 255 / 0.09), transparent 60%),
+    linear-gradient(90deg, rgb(0 0 0 / 0.45), rgb(0 0 0 / 0.1) 5%, transparent 9%),
+    radial-gradient(ellipse at center, transparent 55%, rgb(0 0 0 / 0.35));
+}
+
+.cover-ornament {
+  font-size: 9cqw;
+  line-height: 1;
+}
+
+.cover-title {
+  font-size: 10cqw;
+  line-height: 1.15;
+  text-shadow:
+    0 1px 0 rgb(0 0 0 / 0.55),
+    0 -1px 0 rgb(255 230 170 / 0.15);
+}
+
+.cover-subtitle {
+  font-size: 6.5cqw;
+}
+
+/* Inside of the front cover. Once the cover is open it lies left of the spine, so the hinge shadow is on the right. */
+.endpaper {
+  background-color: var(--paper-shade);
+  background-image:
+    linear-gradient(270deg, rgb(0 0 0 / 0.28), transparent 14%),
+    repeating-linear-gradient(45deg, rgb(110 70 40 / 0.07) 0 2px, transparent 2px 9px);
+}
+
+/* A right-hand page: shaded where it curves into the spine. */
+.page-right {
+  background-image: linear-gradient(90deg, rgb(0 0 0 / 0.16), transparent 9%);
 }
 
 .candle-flame {
