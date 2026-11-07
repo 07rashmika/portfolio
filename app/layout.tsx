@@ -1,5 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Cinzel, Cormorant_Garamond, EB_Garamond, IBM_Plex_Mono } from "next/font/google";
+import { site } from "@/content/site";
+import { siteUrl } from "@/lib/siteUrl";
 import "./globals.css";
 
 const cinzel = Cinzel({
@@ -26,9 +28,26 @@ const plexMono = IBM_Plex_Mono({
   weight: ["400", "500"],
 });
 
+const title = `${site.name} — ${site.role}`;
+
 export const metadata: Metadata = {
-  title: "The Bookshelf — Portfolio",
-  description: "A portfolio presented as a wooden bookshelf. Pick a book and turn its pages.",
+  metadataBase: siteUrl(),
+  title,
+  description: site.description,
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    url: "/",
+    siteName: `${site.name}'s Bookshelf`,
+    title,
+    description: site.description,
+  },
+  twitter: { card: "summary_large_image", title, description: site.description },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#2b1a10", // --wood-darkest
+  colorScheme: "dark",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

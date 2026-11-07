@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="12" fill="#2b1a10"/>
+  <!-- three spines on a shelf -->
+  <rect x="13" y="14" width="10" height="36" rx="1.5" fill="#6e1f1f"/>
+  <rect x="25" y="10" width="12" height="40" rx="1.5" fill="#2f4a34"/>
+  <rect x="40" y="16" width="10" height="34" rx="1.5" fill="#22334d" transform="rotate(8 50 50)"/>
+  <g fill="none" stroke="#c29a4b" stroke-width="1.6">
+    <path d="M14.5 19h7M14.5 45h7M26.5 15h9M26.5 45h9"/>
+  </g>
+  <rect x="9" y="50" width="46" height="4" rx="1" fill="#9c6b3f"/>
+</svg>

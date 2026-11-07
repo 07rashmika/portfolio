@@ -5,7 +5,7 @@ import { ContactPage } from "./ContactPage";
 import { EndPage } from "./EndPage";
 import { ImagePage } from "./ImagePage";
 import { ListPage } from "./ListPage";
-import { PageFrame } from "./PageFrame";
+import { PageFrame, type HeadingLevel } from "./PageFrame";
 import { ProjectSummaryPage } from "./ProjectSummaryPage";
 import { TextPage } from "./TextPage";
 
@@ -34,17 +34,18 @@ export function PageContent({ page, bookTitle, onJump, onClose }: Props) {
   }
 }
 
-function ContentBody({ page }: { page: Page }) {
+/** The body of a content page, without the book's page frame. Also used by the reading room. */
+export function ContentBody({ page, level }: { page: Page; level?: HeadingLevel }) {
   switch (page.kind) {
     case "text":
-      return <TextPage page={page} />;
+      return <TextPage page={page} level={level} />;
     case "list":
-      return <ListPage page={page} />;
+      return <ListPage page={page} level={level} />;
     case "image":
       return <ImagePage page={page} />;
     case "project-summary":
-      return <ProjectSummaryPage page={page} />;
+      return <ProjectSummaryPage page={page} level={level} />;
     case "contact":
-      return <ContactPage page={page} />;
+      return <ContactPage page={page} level={level} />;
   }
 }

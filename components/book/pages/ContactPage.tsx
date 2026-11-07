@@ -1,10 +1,10 @@
 import type { Page } from "@/types/book";
-import { PageLink } from "./PageFrame";
+import { PageHeading, PageLink, type HeadingLevel } from "./PageFrame";
 
-export function ContactPage({ page }: { page: Extract<Page, { kind: "contact" }> }) {
+export function ContactPage({ page, level = 3 }: { page: Extract<Page, { kind: "contact" }>; level?: HeadingLevel }) {
   return (
     <div className="text-[1.05rem] leading-relaxed">
-      <h3 className="mb-4 font-heading text-2xl leading-tight font-semibold sm:text-3xl">{page.heading ?? "Get in touch"}</h3>
+      <PageHeading level={level} className="mb-4 font-heading text-2xl leading-tight font-semibold sm:text-3xl">{page.heading ?? "Get in touch"}</PageHeading>
       <p>Write to me at</p>
       <p className="mt-1 font-heading text-xl">
         <PageLink href={`mailto:${page.email}`}>{page.email}</PageLink>

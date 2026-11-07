@@ -26,8 +26,9 @@ export function Bookshelf() {
 function Shelf({ items }: { items: ShelfItem[] }) {
   return (
     <div className="pt-2.5 sm:pt-4">
-      {/* Scrolls sideways on narrow screens if the books don't fit; the top padding leaves room for the hover lift. */}
-      <ul className="wood shelf-back flex items-end gap-1.5 overflow-x-auto bg-wood-darkest px-2 pt-14 lg:overflow-visible lg:px-4 lg:pt-16">
+      {/* Scrolls sideways on narrow screens if the books don't fit, so the top padding leaves room for
+          the hover lift. On desktop nothing is clipped, so the space above the books can scale with them. */}
+      <ul className="wood shelf-back flex items-end gap-1.5 overflow-x-auto bg-wood-darkest px-2 pt-14 lg:overflow-visible lg:px-4 lg:pt-[calc(var(--book-max-h)*0.2)]">
         {items.map((item, i) => (
           <ShelfSlot key={item.type === "book" ? item.book.id : `${item.type}-${i}`} item={item} />
         ))}

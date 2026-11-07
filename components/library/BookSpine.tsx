@@ -1,6 +1,5 @@
 "use client";
 
-import { motion, useReducedMotion } from "motion/react";
 import { useCallback } from "react";
 import { SpineFace } from "@/components/book/SpineFace";
 import { spineWidth } from "@/lib/shelf";
@@ -17,12 +16,9 @@ type Props = {
 };
 
 export function BookSpine({ book, lean }: Props) {
-  const reduceMotion = useReducedMotion();
   const { away, open, registerSpine } = useLibrary();
   const rotate = lean ? LEAN_DEGREES : 0;
   const height = `calc(var(--book-max-h) * ${book.height})`;
-  // Pull the book toward the viewer; with reduced motion, just brighten it.
-  const pulled = reduceMotion ? { filter: "brightness(1.2)" } : { y: -14, scale: 1.03 };
 
   // The open-book animation starts from wherever this spine is on screen.
   const spineRef = useCallback(
@@ -31,12 +27,14 @@ export function BookSpine({ book, lean }: Props) {
   );
 
   return (
-    <motion.button
+    // Hover and focus pull the book towards you (.book-spine in globals.css). That's plain CSS so
+    // the shelf works without loading the animation library.
+    <button
       ref={spineRef}
       type="button"
       aria-label={`Open ${book.title} book`}
       onClick={() => open(book)}
-      className="group relative shrink-0 cursor-pointer rounded-t-[3px] shadow-[2px_0_4px_rgb(0_0_0/0.45)]"
+      className="book-spine group relative shrink-0 cursor-pointer rounded-t-[3px] shadow-[2px_0_4px_rgb(0_0_0/0.45)]"
       style={{
         width: `calc(${spineWidth(book)}px * var(--spine-scale))`,
         height,
@@ -44,13 +42,8 @@ export function BookSpine({ book, lean }: Props) {
         backgroundColor: `var(--spine-${book.spineColor})`,
         // While the book is open, its slot on the shelf is empty.
         visibility: away.includes(book.id) ? "hidden" : "visible",
-        rotate,
-        originX: 0,
-        originY: 1,
+        ["--lean" as string]: `${rotate}deg`,
       }}
-      whileHover={pulled}
-      whileFocus={pulled}
-      transition={{ type: "spring", stiffness: 320, damping: 22 }}
     >
       <SpineFace book={book} />
 
@@ -62,6 +55,6 @@ export function BookSpine({ book, lean }: Props) {
           {book.subtitle}
         </span>
       )}
-    </motion.button>
+    </button>
   );
 }

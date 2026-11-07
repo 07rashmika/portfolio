@@ -1,3 +1,4 @@
+import { createElement } from "react";
 import type { BookPage } from "@/lib/paginate";
 import { toRoman } from "@/lib/roman";
 
@@ -17,6 +18,21 @@ export function PageFrame({ page, children }: Props) {
       <p className="mt-2 text-center text-sm text-ink-faded">{page.number}</p>
     </div>
   );
+}
+
+// Page headings are <h3> inside a book; the reading room nests them deeper, under book and chapter.
+export type HeadingLevel = 3 | 4 | 5;
+
+export function PageHeading({
+  level = 3,
+  className,
+  children,
+}: {
+  level?: HeadingLevel;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return createElement(`h${level}`, { className }, children);
 }
 
 /** Paragraphs are separated by a blank line in the content files. */

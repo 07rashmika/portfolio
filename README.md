@@ -24,7 +24,7 @@ A single-page portfolio presented as a wooden bookshelf. Each section of the por
 |---|---|---|
 | Framework | **Next.js 16 (App Router) + TypeScript** | One route (`/`), static export or Vercel, good SEO via server rendering |
 | Styling | **Tailwind CSS v4** + CSS variables for the theme | Fast to build; the palette lives in one place (`app/globals.css`) |
-| Animation | **Motion** (`motion`, formerly Framer Motion) | Shared-layout animations (book flies from shelf to centre), springs, gestures, reduced-motion support |
+| Animation | **Motion** (`motion`, formerly Framer Motion) for the open book; plain CSS on the shelf | The flight, cover and page turns. The open book is loaded separately (`next/dynamic`), so the shelf doesn't wait for the animation library |
 | Page turning | **Custom CSS 3D page flip** (`transform-style: preserve-3d`, `rotateY`, `backface-visibility`), driven by Motion | Full control over styling, keyboard and accessibility. Fallback option: `react-pageflip` if you want a realistic curled-corner effect with less work |
 | Content | Typed data files (`content/books/*.ts`), MDX later if needed | Adding a project means adding an entry, with no component changes |
 | 3D (optional) | **React Three Fiber + drei** (Three.js), lazy-loaded | Only for the optional 3D shelf scene in Phase 6 |
@@ -127,7 +127,7 @@ Each book is made of **chapters**, and each chapter has one or more **pages**. A
 | **Education** | Degrees, courses, notable coursework |
 | **Certifications / Awards** | One per page, with an image of the certificate |
 | **Blog / Notes** *(optional)* | Short excerpts with links to full posts |
-| **Contact** | Last page as a letter: email, socials, a short contact form, CV download |
+| **Contact** | Email address and social links (no form) |
 
 Every book also gets:
 - a **cover** (title, small emblem)
@@ -178,7 +178,7 @@ Pages are written as data in `content/books/*.ts`. **`content/shelf.ts`** decide
 ### 4.1 Shelf (idle state)
 - Books stand on one or two shelves with small differences in height, thickness and tilt. One book may lean against another.
 - Decorations between books (a plant, candle, globe, bookends) make it look like a real shelf. These are decorative and hidden from screen readers.
-- **Hover/focus:** the book rises about 14px and grows slightly (a spring animation), its gold title brightens, and on desktop a small plaque with the book's subtitle appears above it. With reduced motion, the book only brightens. A soft wood "tock" sound is optional and off by default.
+- **Hover/focus:** the book rises about 14px and grows slightly, with a small springy overshoot (a CSS transition, `.book-spine` in `globals.css`), its gold title brightens, and on desktop a small plaque with the book's subtitle appears above it. With reduced motion, the book only brightens.
 
 ### 4.2 Opening a book (≈ 1.15 s total)
 The open book is a real 3D box (`components/book/OpenBook.tsx`): a spine face, a page block, and a front cover hinged on the spine. Its transform origin is the middle of the spine, so it turns around its own spine like a book taken off a shelf. All positions come from `lib/bookLayout.ts`.
@@ -228,7 +228,7 @@ Sizes come from two CSS variables in `app/globals.css`, `--book-max-h` and `--sp
 - Page changes are announced through an `aria-live="polite"` region ("Pages 4–5 of 7 — The Bookshelf Portfolio"). Pages that aren't showing are `inert`.
 - `prefers-reduced-motion`: the book fades in and out instead of flying, and pages change instantly instead of turning.
 - Text is real HTML, never a canvas or image, so it can be selected, searched, and translated.
-- A small **"Reading room" (plain view)** link shows all the content as a simple scrolling page, for recruiters who need information quickly. It also helps SEO.
+- The **Reading room** (`components/ReadingRoom.tsx`), below the shelf on the same page, has every book as plain, selectable text: one collapsible section per book, chapters and pages in order, and an "Open the book" link. It's for visitors who want the information quickly, and since it's rendered on the server, everything is in the page's HTML for search engines too. A "Prefer plain text?" link under the shelf and a skip link (the first thing Tab reaches) lead there.
 
 ### 4.6 Single page and URL state
 There is one route, `/`, and the open book and page are stored in the query string:
@@ -257,10 +257,13 @@ Only the small part that reads the URL sits inside `<Suspense>`, so the shelf is
 ```
 portfolio/
 ├─ app/
-│  ├─ layout.tsx             # fonts, metadata
-│  ├─ page.tsx               # <Library /> — the whole site
+│  ├─ layout.tsx             # fonts, metadata (title, description, link previews)
+│  ├─ page.tsx               # heading, shelf, reading room — the whole site
 │  ├─ globals.css            # theme tokens (@theme), textures, reduced-motion rules
-│  └─ opengraph-image.tsx    # social preview of the shelf
+│  ├─ opengraph-image.tsx    # link-preview image: your name beside the shelf
+│  ├─ icon.svg               # browser tab icon
+│  ├─ robots.ts, sitemap.ts
+├─ assets/fonts/             # TTFs for the link-preview image (OFL licensed)
 ├─ components/
 │  ├─ library/
 │  │  ├─ Library.tsx         # owns the open-book state and URL sync
@@ -268,6 +271,7 @@ portfolio/
 │  │  ├─ BookSpine.tsx       # a book on the shelf (hover, click)
 │  │  └─ Decor.tsx           # plant, candle, bookends (SVG)
 │  ├─ book/
+│  │  ├─ BookOverlay.tsx     # loaded separately: AnimatePresence + OpenBook
 │  │  ├─ OpenBook.tsx        # dialog overlay, 3D book box, fly-in/out, keys
 │  │  ├─ Leaves.tsx          # the turning leaves: angles, piles, click/drag/swipe
 │  │  ├─ useBookPages.ts     # which page is open, turning to a position or page
@@ -281,21 +285,21 @@ portfolio/
 │  │     ├─ TextPage.tsx, ListPage.tsx, ImagePage.tsx
 │  │     ├─ ProjectSummaryPage.tsx, ContactPage.tsx
 │  │     └─ EndPage.tsx      # "Finis", back to the shelf or the contents
-│  ├─ PlainView.tsx          # accessible "reading room" fallback
+│  ├─ ReadingRoom.tsx        # every book as plain text, below the shelf
 │  └─ scene3d/               # (optional, Phase 6) R3F shelf scene
 ├─ content/
+│  ├─ site.ts                # your name, role and description
 │  ├─ shelf.ts               # which book/decoration stands where
 │  └─ books/                 # about.ts, projects.ts, experience.ts, ...
 ├─ lib/
 │  ├─ paginate.ts            # chapters → flat pages → leaves and positions
 │  ├─ roman.ts               # chapter numbers as numerals
 │  ├─ shelf.ts               # spine width from page count
+│  ├─ siteUrl.ts             # the site's public address
 │  └─ bookLayout.ts          # open-book size and poses (shelf, closed, open)
 ├─ types/book.ts
 ├─ public/
-│  ├─ textures/              # wood.webp, paper.webp (compressed)
-│  ├─ images/projects/
-│  └─ cv.pdf
+│  └─ images/projects/       # (when you add image pages)
 └─ README.md
 ```
 
@@ -340,13 +344,14 @@ portfolio/
 - [x] Renderers for every page kind, with running heads and page numbers
 - [x] Hidden pages are inert; focus is kept on screen after a turn
 
-### Phase 5 — Content, polish, and quality (2 days)
-- [ ] Fill in all the books
-- [ ] Reduced-motion versions, screen-reader pass, keyboard-only pass
-- [ ] `PlainView` reading room, metadata, OG image, sitemap
-- [ ] Contact form (Formspree, Resend, or a Next.js Route Handler)
-- [ ] Lighthouse: aim for ≥ 90 in every category; images through `next/image`; textures under 100 KB each
-- [ ] Optional sound effects with a mute toggle
+### Phase 5 — Content, polish, and quality
+- [ ] **Fill in all the books** with your own content (see "Filling in your content" below)
+- [x] Reduced-motion, keyboard-only and screen-reader checks: focus order, skip link, heading structure, live page announcements
+- [x] Reading room below the shelf; metadata, link-preview image, sitemap, robots, tab icon
+- [x] Contact: email and social links only (decided against a form)
+- [x] Performance: the open book and animation library load separately (page JS 238 → 183 KB gzipped); no image textures; the first screen fits from 1366×768 laptops to phones
+- [ ] Lighthouse audit (aim for ≥ 90 in every category); run `npx lighthouse http://localhost:3000` against `npm run build && npm start`
+- [x] ~~Sound effects~~ (decided against)
 
 ### Phase 6 — Optional: 3D scene with Three.js
 - [ ] `@react-three/fiber` + `@react-three/drei`, loaded with `next/dynamic({ ssr: false })` and only on capable devices
@@ -355,8 +360,9 @@ portfolio/
 - [ ] Keep the CSS shelf as the fallback for low-power devices, reduced motion, and no WebGL
 
 ### Phase 7 — Deploy
-- [ ] Push to GitHub and import into Vercel
-- [ ] Custom domain, analytics (Vercel Analytics or Plausible)
+- [ ] Push to GitHub and import into Vercel. Link previews and the sitemap use Vercel's production domain automatically
+- [ ] Custom domain: set `NEXT_PUBLIC_SITE_URL` (e.g. `https://yourname.dev`) in the Vercel project settings
+- [ ] Analytics (Vercel Analytics or Plausible)
 
 **Rough total:** about 2 weeks part-time for Phases 0–5.
 
@@ -380,6 +386,15 @@ npm run build       # production build
 npm install three @react-three/fiber @react-three/drei
 ```
 
+### Filling in your content
+Everything that's placeholder is marked `TODO`:
+
+1. **`content/site.ts`**: your name, role and a one-sentence description. These drive the page heading, browser tab, search results and link-preview image.
+2. **`content/books/*.ts`**: one file per book. Keep each page short (pages don't scroll) and split long text across several pages; `npm test` checks the files for mistakes like duplicate ids or empty chapters.
+3. **Images**: put them in `public/images/…` and add an `{ kind: "image", src: "/images/…", alt: "…" }` page.
+
+The site's address comes from `NEXT_PUBLIC_SITE_URL` if set, otherwise Vercel's production domain, otherwise `http://localhost:3000`.
+
 ### Adding a new project
 1. Open `content/books/projects.ts`.
 2. Add a new `Chapter` with its pages.
@@ -394,7 +409,8 @@ npm install three @react-three/fiber @react-three/drei
 ## 8. Things to watch out for
 
 - **Text readability comes first.** The book is the content. Keep the page body at 17px or more, with high contrast and at most about 60–70 characters per line.
-- **Don't hide information behind the novelty.** The plain view and deep links make sure recruiters can still find everything in seconds.
+- **Don't hide information behind the novelty.** The reading room and deep links make sure recruiters can still find everything in seconds.
+- **Keep the first screen fitting.** On desktop the books are sized from the screen height (`--book-max-h` in `globals.css`) so both shelves, the heading and the reading-room link fit even on a 1366×768 laptop. If you add a shelf or make the heading taller, adjust that formula.
 - **Watch the 3D stacking context.** `overflow: hidden`, `filter`, or `opacity` on a parent of `preserve-3d` elements flattens the 3D effect. Put shadows and blur on sibling layers.
 - **No big shadows on moving 3D faces.** A large `box-shadow` on the cover or a page confuses Chrome's 3D layer sorting, and the pages show through the opening cover near the spine. The open book's shadows sit on flat planes at the back of the book instead.
 - **Drive the 3D parts with motion values, not element animations.** Animating an element directly with Motion (`animate(element, { rotateY })`) can hand it to the browser's own animation engine, which runs out of step with the leaves (driven by motion values). Chrome then sorts the 3D layers using stale transforms, and the pages show through the cover as the book lands on the shelf. `OpenBook` animates the box pose and cover angle as motion values so everything updates together.
