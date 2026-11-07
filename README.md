@@ -132,7 +132,7 @@ Each book is made of **chapters**, and each chapter has one or more **pages**. A
 Every book also gets:
 - a **cover** (title, small emblem)
 - an **auto-generated table of contents** whose entries jump to that chapter
-- a **back cover** with a "Return to shelf" action
+- an **end page** ("Finis") with "Return to shelf" and "Back to contents"
 
 ### Content model
 
@@ -165,9 +165,9 @@ Pages are written as data in `content/books/*.ts`. **`content/shelf.ts`** decide
 
 `lib/paginate.ts` turns a book into pages and spreads:
 
-- **`paginate(book)`** flattens it into cover → table of contents → chapter pages → back cover. Each page has an `index` (its position, used by `?page=`) and a printed `number`. The table of contents points at each chapter's first page.
-- **`toSpreads(pages)`** pairs pages the way a real book opens: the closed cover alone on the right, the table of contents facing the inside of the front cover, then pairs, and the closed back cover alone on the left.
-- **`spreadIndexOf(spreads, pageIndex)`** finds which spread shows a page, so `?page=7` opens the right spread on desktop.
+- **`paginate(book)`** flattens it into cover → table of contents → chapter pages → end page ("Finis", with the way back to the shelf). Each page has an `index` (its position, used by `?page=`) and, apart from the cover and end page, a printed `number`. The table of contents points at each chapter's first page.
+- **`toLeaves(pages, spread)`** prints the pages after the cover onto **leaves**, the physical sheets that turn. As a spread, each leaf has a page on its front (a right-hand page) and one on its back (a left-hand page once turned). In single-page mode each page gets its own leaf with a blank back, so every page lands on the right where it can be seen.
+- A **position** is how many leaves are turned. `visiblePages()` gives the left and right page at a position (the back of the last turned leaf, the front of the next one), `positionOf()` finds the position for a page, `pageAt()` gives the page to put in the URL, and `lastPosition()` is the furthest you can turn.
 
 `content/books/books.test.ts` checks the content itself (unique, URL-safe ids, no empty chapters, heights in range), so a typo in a book file fails `npm test` instead of breaking the site.
 
@@ -191,25 +191,42 @@ Closing reverses these steps, landing on the spine's current position (re-measur
 The spine artwork (`SpineFace`) is shared by the shelf and the 3D book and sized in container units, so the hand-off from shelf to flying book is seamless.
 
 ### 4.3 Turning pages
-- Each leaf is a `div` with a front and a back face, `preserve-3d`, rotating around the spine.
-- Ways to turn: **click the right or left page**, **← / → keys**, **drag the page corner** (Motion `drag` mapped to rotation, snapping when released), and **swipe** on touch screens.
-- A gradient shadow sweeps across the page while it turns to make it look curved.
-- Page numbers sit in the footer. A ribbon bookmark opens the table of contents.
-- Optional: a soft page-rustle sound, muted by default, with a toggle.
+`components/book/Leaves.tsx` renders every leaf as a sheet with a front and a back face, hinged on the spine. Each leaf has one angle (0 = lying on the right, −180° = turned over onto the left), which drives:
+
+- **its rotation**, turning around the spine;
+- **its height above the pile**: on the right the next leaf is on top, on the left the most recently turned one is, and a turning leaf moves from one height to the other;
+- **its shading**: a page darkens as it lifts towards upright and lightens as it lands, as if lit from above.
+
+Ways to turn:
+
+- **Click** the right page to go on, the left page to go back (in single-page mode, the left 30% of the page goes back).
+- **Drag or swipe** a page over. Let go past 30% (or flick it) and the turn completes; otherwise it falls back.
+- **← / →** keys, and the **‹ ›** buttons below the book.
+- **Contents**: the ribbon bookmark below the book, and each entry on the contents page, jump straight to a chapter. Jumping several pages riffles through them one after another.
+
+The bar below the book shows "Pages 4–5 of 7" (announced to screen readers along with the chapter title). The page edges beside each pile thicken or thin as you read. Pages that aren't showing are `inert`, so you can't tab into a page you can't see, and if a turn hides the focused element, focus moves to the page buttons.
+
+A deep link to a later page opens on the contents and then riffles through to that page, because turned pages hanging off a closed, flying book would look wrong. Closing the book swings the turned pages shut together with the cover.
+
+Every page except the contents and the end page gets a running head (the chapter title, or "Chapter II" on a chapter's first page) and a page number. Content that doesn't fit is cut off, so keep pages short and split long content across several pages.
+
+Not built yet: a soft page-rustle sound, muted by default, with a toggle (Phase 5).
 
 ### 4.4 Responsive behaviour
 | Viewport | Shelf | Open book |
 |---|---|---|
 | ≥ 1024px | Full bookshelf, two shelves, subtitle plaques on hover | **Two-page spread** |
 | 640–1023px | Same shelves, books ~13rem tall, spines at 90% width | Two-page spread, scaled down |
-| < 640px | Same shelves, books ~11rem tall, spines at 75% width, the book stack hidden; a shelf scrolls sideways if it ever gets too full | **Single page**, swipe to turn |
+| < 640px | Same shelves, books ~11rem tall, spines at 75% width, the book stack hidden; a shelf scrolls sideways if it ever gets too full | **Single page**, swipe or tap to turn |
+
+Resizing between spread and single-page mode keeps you on the same page.
 
 Sizes come from two CSS variables in `app/globals.css`, `--book-max-h` and `--spine-scale`, which change at each breakpoint.
 
 ### 4.5 Accessibility (built in from the start)
 - Each book is a `<button>` with `aria-label="Open Projects book"`. The open book is a native modal `<dialog>`, so the browser traps focus and makes the shelf behind it inert. `Esc`, the "Return to shelf" button, clicking the backdrop and the browser back button all close it, and focus returns to the spine.
-- Page changes are announced through an `aria-live="polite"` region ("Page 4 of 18 — Project: Weather App").
-- `prefers-reduced-motion`: the fly and flip animations are replaced with short crossfades.
+- Page changes are announced through an `aria-live="polite"` region ("Pages 4–5 of 7 — The Bookshelf Portfolio"). Pages that aren't showing are `inert`.
+- `prefers-reduced-motion`: the book fades in and out instead of flying, and pages change instantly instead of turning.
 - Text is real HTML, never a canvas or image, so it can be selected, searched, and translated.
 - A small **"Reading room" (plain view)** link shows all the content as a simple scrolling page, for recruiters who need information quickly. It also helps SEO.
 
@@ -218,8 +235,8 @@ There is one route, `/`, and the open book and page are stored in the query stri
 
 ```
 /                          → shelf
-/?book=projects            → Projects book, cover
-/?book=projects&page=7     → Projects book, page 7
+/?book=projects            → Projects book, open on the contents
+/?book=projects&page=7     → Projects book, open on the spread with page 7
 ```
 
 This makes links shareable, lets the browser back button close the book, and allows deep-linking a specific project in a CV.
@@ -228,6 +245,7 @@ This makes links shareable, lets the browser back button close the book, and all
 
 - **Opening** pushes `?book=<id>`.
 - **Closing** goes `history.back()` if the book was opened from the shelf, so history doesn't pile up. On a deep link there may be nothing to go back to, so it replaces the URL with `/` instead.
+- **Turning a page** replaces the URL with `?book=<id>&page=<index>`, so it doesn't add history entries and Back still closes the book.
 - **Unknown ids** (`?book=nope`) just show the shelf.
 
 Only the small part that reads the URL sits inside `<Suspense>`, so the shelf is still prerendered as static HTML.
@@ -250,24 +268,27 @@ portfolio/
 │  │  ├─ BookSpine.tsx       # a book on the shelf (hover, click)
 │  │  └─ Decor.tsx           # plant, candle, bookends (SVG)
 │  ├─ book/
-│  │  ├─ OpenBook.tsx        # dialog overlay, 3D book box, fly-in/out animation
+│  │  ├─ OpenBook.tsx        # dialog overlay, 3D book box, fly-in/out, keys
+│  │  ├─ Leaves.tsx          # the turning leaves: angles, piles, click/drag/swipe
+│  │  ├─ useBookPages.ts     # which page is open, turning to a position or page
+│  │  ├─ BookNav.tsx         # ‹ › buttons, ribbon bookmark, "Pages 4–5 of 7"
 │  │  ├─ SpineFace.tsx       # spine artwork, shared with the shelf
 │  │  ├─ CoverFace.tsx       # front cover artwork
-│  │  ├─ PageFlipper.tsx     # spreads, flip animation, drag/swipe/keys
-│  │  ├─ Leaf.tsx            # one physical leaf (front + back face)
 │  │  ├─ TableOfContents.tsx
-│  │  └─ pages/              # renderers per Page.kind
-│  │     ├─ TextPage.tsx
-│  │     ├─ ImagePage.tsx
-│  │     ├─ ProjectSummaryPage.tsx
-│  │     └─ ContactPage.tsx
+│  │  └─ pages/              # renderers per page kind
+│  │     ├─ PageContent.tsx  # picks the renderer
+│  │     ├─ PageFrame.tsx    # running head + page number, paragraphs, links
+│  │     ├─ TextPage.tsx, ListPage.tsx, ImagePage.tsx
+│  │     ├─ ProjectSummaryPage.tsx, ContactPage.tsx
+│  │     └─ EndPage.tsx      # "Finis", back to the shelf or the contents
 │  ├─ PlainView.tsx          # accessible "reading room" fallback
 │  └─ scene3d/               # (optional, Phase 6) R3F shelf scene
 ├─ content/
 │  ├─ shelf.ts               # which book/decoration stands where
 │  └─ books/                 # about.ts, projects.ts, experience.ts, ...
 ├─ lib/
-│  ├─ paginate.ts            # chapters → flat pages → spreads
+│  ├─ paginate.ts            # chapters → flat pages → leaves and positions
+│  ├─ roman.ts               # chapter numbers as numerals
 │  ├─ shelf.ts               # spine width from page count
 │  └─ bookLayout.ts          # open-book size and poses (shelf, closed, open)
 ├─ types/book.ts
@@ -292,7 +313,7 @@ portfolio/
 ### Phase 1 — Content model ✅
 - [x] Define the types in `types/book.ts`
 - [x] **About** and **Projects** books (placeholder text, replace with your own; 2–3 projects is enough to start)
-- [x] `paginate.ts` with unit tests (cover/TOC/back-cover insertion, spread pairing, odd page counts)
+- [x] `paginate.ts` with unit tests (cover/contents/end-page insertion, page numbers, empty chapters)
 - [x] Vitest, plus content checks in `content/books/books.test.ts`
 
 ### Phase 2 — Static bookshelf ✅
@@ -310,13 +331,14 @@ portfolio/
 - [x] URL sync (`?book=`), back button, Esc, backdrop click, focus returned to the spine
 - [x] Opens on the table of contents; `lib/bookLayout.ts` with tests
 
-### Phase 4 — Page turning (2–3 days, the core of the site)
-- [ ] `Leaf` with front and back faces and `PageFlipper` handling the stack order (z-index) of leaves
-- [ ] Turning by click, arrow keys, drag, and swipe; `?page=` in the URL
-- [ ] Shading while a page turns, page-edge thickness that changes as you read
-- [ ] Single-page mode on mobile
-- [ ] Table of contents and ribbon bookmark navigation
-- [ ] Renderers for each `Page.kind`
+### Phase 4 — Page turning ✅
+- [x] Leaves with front and back faces, piles that stack in the right order, `toLeaves()` and positions in `paginate.ts`
+- [x] Turning by click, ← / →, drag, and swipe; ‹ › buttons; `?page=` in the URL (deep links riffle to the page)
+- [x] Shading while a page turns, page edges that thicken and thin as you read
+- [x] Single-page mode on phones; resizing keeps your page
+- [x] Contents entries and a ribbon bookmark to jump to chapters; an end page back to the shelf
+- [x] Renderers for every page kind, with running heads and page numbers
+- [x] Hidden pages are inert; focus is kept on screen after a turn
 
 ### Phase 5 — Content, polish, and quality (2 days)
 - [ ] Fill in all the books
@@ -375,5 +397,7 @@ npm install three @react-three/fiber @react-three/drei
 - **Don't hide information behind the novelty.** The plain view and deep links make sure recruiters can still find everything in seconds.
 - **Watch the 3D stacking context.** `overflow: hidden`, `filter`, or `opacity` on a parent of `preserve-3d` elements flattens the 3D effect. Put shadows and blur on sibling layers.
 - **No big shadows on moving 3D faces.** A large `box-shadow` on the cover or a page confuses Chrome's 3D layer sorting, and the pages show through the opening cover near the spine. The open book's shadows sit on flat planes at the back of the book instead.
-- **Animate only `transform` and `opacity`** to keep page turns at 60fps, and use `will-change: transform` only on the leaf that is turning.
+- **Drive the 3D parts with motion values, not element animations.** Animating an element directly with Motion (`animate(element, { rotateY })`) can hand it to the browser's own animation engine, which runs out of step with the leaves (driven by motion values). Chrome then sorts the 3D layers using stale transforms, and the pages show through the cover as the book lands on the shelf. `OpenBook` animates the box pose and cover angle as motion values so everything updates together.
+- **Animate only `transform` and `opacity`** to keep page turns at 60fps.
+- **Keep pages short.** A page doesn't scroll; anything that doesn't fit is cut off. Split long content across pages.
 - **Images on pages:** give them fixed aspect ratios so the page layout doesn't jump.

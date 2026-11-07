@@ -232,9 +232,62 @@ body {
     repeating-linear-gradient(45deg, rgb(110 70 40 / 0.07) 0 2px, transparent 2px 9px);
 }
 
-/* A right-hand page: shaded where it curves into the spine. */
+/* Inside of the back cover, under the last leaf; its hinge is on the left. */
+.endpaper-back {
+  background-color: var(--paper-shade);
+  background-image:
+    linear-gradient(90deg, rgb(0 0 0 / 0.28), transparent 14%),
+    repeating-linear-gradient(45deg, rgb(110 70 40 / 0.07) 0 2px, transparent 2px 9px);
+}
+
+/* Pages are shaded where they curve into the spine: on the left of a right-hand page, on the right of a left-hand one. */
 .page-right {
   background-image: linear-gradient(90deg, rgb(0 0 0 / 0.16), transparent 9%);
+}
+
+.page-left {
+  background-image: linear-gradient(270deg, rgb(0 0 0 / 0.16), transparent 9%);
+}
+
+/* Shadow across a page while it turns; its opacity follows the page's angle. */
+.page-shade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.page-shade-front {
+  background: linear-gradient(90deg, rgb(40 20 5 / 0.32), rgb(40 20 5 / 0.12));
+}
+
+.page-shade-back {
+  background: linear-gradient(270deg, rgb(40 20 5 / 0.32), rgb(40 20 5 / 0.12));
+}
+
+/* The stacked edges of the pages beside each pile. */
+.page-edges {
+  background: repeating-linear-gradient(90deg, var(--paper) 0 1px, #cdb991 1px 2px);
+}
+
+/* The "Contents" button, cut like the end of a ribbon bookmark. */
+.ribbon {
+  padding: 0.35rem 0.9rem 0.85rem;
+  color: var(--brass-bright);
+  background: linear-gradient(90deg, rgb(0 0 0 / 0.25), transparent 30%, transparent 70%, rgb(0 0 0 / 0.25)),
+    var(--spine-oxblood);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%);
+  transition: color 200ms, filter 200ms;
+}
+
+.ribbon:hover {
+  color: var(--paper);
+  filter: brightness(1.15);
+}
+
+.ribbon:focus-visible {
+  /* the clip-path hides an outline, so mark focus with colour */
+  color: var(--paper);
+  filter: brightness(1.3);
 }
 
 .candle-flame {

@@ -47,6 +47,12 @@ export function Library({ children }: { children: React.ReactNode }) {
     window.history.pushState(null, "", `?book=${book.id}`);
   }, []);
 
+  // Page turns replace the URL rather than adding history entries, so Back still closes the book.
+  const showPage = useCallback((bookId: string, pageIndex: number) => {
+    const query = pageIndex > 1 ? `?book=${bookId}&page=${pageIndex}` : `?book=${bookId}`;
+    window.history.replaceState(null, "", query);
+  }, []);
+
   const close = useCallback(() => {
     if (openedFromShelf.current) {
       // We added the history entry, so going back removes it instead of piling up entries.
@@ -92,6 +98,7 @@ export function Library({ children }: { children: React.ReactNode }) {
           measureSpine={measureSpine}
           onDepart={depart}
           onReturn={returnToShelf}
+          onPageChange={showPage}
           onRequestClose={close}
         />
       </Suspense>
@@ -103,13 +110,18 @@ type OpenBookFromUrlProps = {
   measureSpine: (bookId: string) => SpineBox | null;
   onDepart: (bookId: string) => void;
   onReturn: (bookId: string) => void;
+  onPageChange: (bookId: string, pageIndex: number) => void;
   onRequestClose: () => void;
 };
 
-// Reads ?book= in its own Suspense boundary so the rest of the page can be prerendered.
-function OpenBookFromUrl({ measureSpine, onDepart, onReturn, onRequestClose }: OpenBookFromUrlProps) {
-  const bookId = useSearchParams().get("book");
+// Reads ?book= and ?page= in its own Suspense boundary so the rest of the page can be prerendered.
+function OpenBookFromUrl({ measureSpine, onDepart, onReturn, onPageChange, onRequestClose }: OpenBookFromUrlProps) {
+  const searchParams = useSearchParams();
+  const bookId = searchParams.get("book");
   const book = bookId ? getBook(bookId) : undefined; // unknown ids just show the shelf
+  // Only read when the book opens; after that the book keeps the URL up to date itself.
+  const page = Number(searchParams.get("page"));
+  const initialPageIndex = Number.isInteger(page) && page > 0 ? page : 1;
 
   return (
     <AnimatePresence>
@@ -117,9 +129,11 @@ function OpenBookFromUrl({ measureSpine, onDepart, onReturn, onRequestClose }: O
         <OpenBook
           key={book.id}
           book={book}
+          initialPageIndex={initialPageIndex}
           measureSpine={() => measureSpine(book.id)}
           onDepart={() => onDepart(book.id)}
           onReturn={() => onReturn(book.id)}
+          onPageChange={(pageIndex) => onPageChange(book.id, pageIndex)}
           onRequestClose={onRequestClose}
         />
       )}

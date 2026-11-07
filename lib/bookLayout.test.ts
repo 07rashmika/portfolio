@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  BOTTOM_BAR,
   bookSize,
   bookThickness,
   closedPose,
@@ -42,10 +43,10 @@ describe("bookSize", () => {
       expect(size.width / size.height).toBeCloseTo(0.7, 1);
     });
 
-    it("fits below the top bar", () => {
+    it("fits between the top and bottom bars", () => {
       const { y } = closedPose(viewport, size);
       expect(y).toBeGreaterThanOrEqual(TOP_BAR + g - 1);
-      expect(y + size.height).toBeLessThanOrEqual(viewport.height - g + 1);
+      expect(y + size.height).toBeLessThanOrEqual(viewport.height - BOTTOM_BAR - g + 1);
     });
 
     it("fits the open pages inside the gutters", () => {
