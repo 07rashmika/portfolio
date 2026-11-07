@@ -1,6 +1,7 @@
 // Geometry for the open-book overlay. All values are in CSS px, relative to the viewport.
 
 export const TOP_BAR = 56; // room above the book for the "Return to shelf" button
+export const BOTTOM_BAR = 52; // room below the book for the page navigation
 const COVER_RATIO = 0.7; // cover width / height
 const MAX_HEIGHT = 680;
 const MIN_SPREAD_PAGE_WIDTH = 260; // narrower than this and pages become hard to read, so show one page
@@ -22,7 +23,7 @@ export function gutter(viewport: Viewport): number {
 /** The largest book that fits: as a two-page spread if the pages stay readable, otherwise one page. */
 export function bookSize(viewport: Viewport): BookSize {
   const g = gutter(viewport);
-  const maxHeight = Math.min(MAX_HEIGHT, viewport.height - TOP_BAR - 2 * g);
+  const maxHeight = Math.min(MAX_HEIGHT, viewport.height - TOP_BAR - BOTTOM_BAR - 2 * g);
 
   const fit = (maxWidth: number) => {
     const height = Math.floor(Math.min(maxHeight, maxWidth / COVER_RATIO));
@@ -50,11 +51,11 @@ export function shelfPose(spine: SpineBox, size: BookSize): Pose {
   };
 }
 
-/** Closed, cover facing the viewer, centred below the top bar. Whole pixels keep the text sharp. */
+/** Closed, cover facing the viewer, centred between the top and bottom bars. Whole pixels keep the text sharp. */
 export function closedPose(viewport: Viewport, size: BookSize): Pose {
   return {
     x: Math.round((viewport.width - size.width) / 2),
-    y: Math.round(TOP_BAR + (viewport.height - TOP_BAR - size.height) / 2),
+    y: Math.round(TOP_BAR + (viewport.height - TOP_BAR - BOTTOM_BAR - size.height) / 2),
     scale: 1,
     rotate: 0,
     rotateY: 0,
