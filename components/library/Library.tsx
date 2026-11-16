@@ -14,11 +14,16 @@ const BookOverlay = dynamic(() => import("@/components/book/BookOverlay"), { ssr
 
 type Spine = { element: HTMLElement; rotate: number };
 
+/** Where a book's spine is on screen, for a shelf that draws its books itself (the 3D shelf). */
+export type SpineProjector = (bookId: string) => SpineBox | null;
+
 type LibraryContextValue = {
   /** Books that are off the shelf (open, or flying back); their spines are hidden. */
   away: string[];
   open: (book: Book) => void;
   registerSpine: (bookId: string, element: HTMLElement, rotate: number) => () => void;
+  /** The 3D shelf registers this so the open-book animation starts from the 3D book, wherever it is. */
+  setSpineProjector: (projector: SpineProjector | null) => void;
 };
 
 const LibraryContext = createContext<LibraryContextValue | null>(null);
@@ -35,6 +40,7 @@ export function useLibrary() {
  */
 export function Library({ children }: { children: React.ReactNode }) {
   const spines = useRef(new Map<string, Spine>());
+  const projector = useRef<SpineProjector | null>(null);
   const openedFromShelf = useRef(false);
   const [away, setAway] = useState<string[]>([]);
 
@@ -67,7 +73,13 @@ export function Library({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const setSpineProjector = useCallback((next: SpineProjector | null) => {
+    projector.current = next;
+  }, []);
+
   const measureSpine = useCallback((bookId: string): SpineBox | null => {
+    const projected = projector.current?.(bookId);
+    if (projected) return projected;
     const spine = spines.current.get(bookId);
     if (!spine) return null;
     // The bounding box is rotated for a leaning book, but its centre is still the spine's centre.
@@ -91,7 +103,10 @@ export function Library({ children }: { children: React.ReactNode }) {
     requestAnimationFrame(() => spines.current.get(bookId)?.element.focus({ preventScroll: true }));
   }, []);
 
-  const value = useMemo(() => ({ away, open, registerSpine }), [away, open, registerSpine]);
+  const value = useMemo(
+    () => ({ away, open, registerSpine, setSpineProjector }),
+    [away, open, registerSpine, setSpineProjector],
+  );
 
   return (
     <LibraryContext.Provider value={value}>

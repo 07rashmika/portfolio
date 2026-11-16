@@ -33,6 +33,7 @@ export function BookSpine({ book, lean }: Props) {
       ref={spineRef}
       type="button"
       aria-label={`Open ${book.title} book`}
+      data-book-id={book.id}
       onClick={() => open(book)}
       className="book-spine group relative shrink-0 cursor-pointer rounded-t-[3px] shadow-[2px_0_4px_rgb(0_0_0/0.45)]"
       style={{

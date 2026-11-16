@@ -3,8 +3,8 @@ import { join } from "node:path";
 import { ImageResponse } from "next/og";
 import { books } from "@/content/books";
 import { site } from "@/content/site";
+import { PALETTE, SPINE_HEX } from "@/lib/palette";
 import { spineWidth } from "@/lib/shelf";
-import type { SpineColor } from "@/types/book";
 
 // The preview shown when the site is shared: your name beside a small shelf of the real books.
 
@@ -12,18 +12,9 @@ export const alt = `${site.name}'s bookshelf portfolio`;
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-// The image renderer can't read CSS variables; these match the --spine-* tokens in app/globals.css.
-const SPINE: Record<SpineColor, string> = {
-  oxblood: "#6e1f1f",
-  forest: "#2f4a34",
-  navy: "#22334d",
-  ochre: "#9a5b1e",
-  plum: "#4b2a40",
-  teal: "#1f4a4a",
-  tan: "#8a6a45",
-  red: "#7a2a20",
-};
-const BRASS = "#c29a4b";
+// The image renderer can't read CSS variables, so it uses the palette's plain values.
+const SPINE = SPINE_HEX;
+const BRASS = PALETTE.brass;
 
 // Cached, so reading the font files doesn't stop the image from being generated once at build time.
 // Cached values must survive serialisation, so the files travel as base64 text.

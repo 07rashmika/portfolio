@@ -151,6 +151,7 @@ body {
    so it looks the same on the shelf and on the full-size book flying off it. */
 .spine-face {
   container-type: size;
+  transition: opacity 600ms ease;
 }
 
 /* Two thin gold lines, like the raised bands on an old binding. */
@@ -181,7 +182,9 @@ body {
   transform: rotate(var(--lean, 0deg));
   transition:
     transform 420ms cubic-bezier(0.34, 1.56, 0.64, 1),
-    filter 200ms;
+    filter 200ms,
+    background-color 600ms ease,
+    box-shadow 600ms ease;
 }
 
 .book-spine:hover,
@@ -195,6 +198,34 @@ body {
     transform: rotate(var(--lean, 0deg));
     filter: brightness(1.2);
   }
+}
+
+/* ── 3D shelf (components/shelf3d) ─────────────────────────── */
+
+/* Drawn over the wooden CSS shelf, under the spine buttons. Fades in once its first frames are drawn. */
+.shelf-3d-layer {
+  z-index: 1;
+  transition: opacity 700ms ease;
+}
+
+/* With the 3D shelf showing, the spines become invisible buttons over the 3D books: they still take
+   the hover, clicks, focus and keyboard, show the subtitle plaque and focus ring, and are what screen
+   readers see. The 3D book does the moving, so the CSS lift is switched off. */
+[data-shelf-3d] .book-spine {
+  z-index: 2;
+  background-color: transparent !important;
+  box-shadow: none;
+  transform: rotate(var(--lean, 0deg)) !important;
+  filter: none !important;
+}
+
+[data-shelf-3d] .book-spine .spine-face {
+  opacity: 0;
+}
+
+/* The CSS planks normally sit above the books' feet; under the 3D layer they needn't. */
+[data-shelf-3d] .shelf-plank {
+  z-index: auto;
 }
 
 .spine-ornament {

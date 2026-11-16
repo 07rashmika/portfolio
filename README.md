@@ -27,22 +27,20 @@ A single-page portfolio presented as a wooden bookshelf. Each section of the por
 | Animation | **Motion** (`motion`, formerly Framer Motion) for the open book; plain CSS on the shelf | The flight, cover and page turns. The open book is loaded separately (`next/dynamic`), so the shelf doesn't wait for the animation library |
 | Page turning | **Custom CSS 3D page flip** (`transform-style: preserve-3d`, `rotateY`, `backface-visibility`), driven by Motion | Full control over styling, keyboard and accessibility. Fallback option: `react-pageflip` if you want a realistic curled-corner effect with less work |
 | Content | Typed data files (`content/books/*.ts`), MDX later if needed | Adding a project means adding an entry, with no component changes |
-| 3D (optional) | **React Three Fiber + drei** (Three.js), lazy-loaded | Only for the optional 3D shelf scene in Phase 6 |
+| 3D shelf | **Three.js 0.182 + React Three Fiber 9**, lazy-loaded | The 3D bookshelf on capable devices (Phase 6); everyone else gets the CSS shelf. Three is held at 0.182 because React Three Fiber 9.8 still uses `THREE.Clock`, which 0.183+ warns about in the console |
 | Fonts | `next/font/google` | Self-hosted, no layout shift |
 | Deploy | Vercel | Zero config for Next.js |
 
 > **Next 16 notes.** This project has `cacheComponents` enabled. Any client component that calls `useSearchParams` (the open-book URL state) must be wrapped in `<Suspense>`, or the production build fails. Next ships its own docs in `node_modules/next/dist/docs/`, and those take precedence over older tutorials (see `AGENTS.md`).
 
-### Do you need Three.js?
+### Where Three.js is used
 
-**Not for the first version.** Everything in the core idea — a shelf, books that slide out and rotate, a book opening, and pages turning — works well with CSS 3D transforms and Motion. That approach is lighter (Three.js plus R3F is about 150 KB+ gzipped), easier to make accessible, renders sharp text, and runs well on phones.
+**Only for the bookshelf itself** (see §4.7). Everything else stays HTML and CSS:
 
-Three.js is worth adding only if you later want any of these:
-- a real 3D room you can orbit or parallax (shelf with depth, a lamp casting light, dust particles)
-- books with real thickness and lighting as they're pulled out
-- a camera move that zooms into the shelf
+- **The open book and page turns** stay CSS 3D: WebGL pages would turn text into textures (blurrier, not selectable, links and screen readers lost).
+- **The reading room, nav and link previews** stay plain: they exist for clarity, speed and search.
 
-The plan handles this by building the 2D/CSS-3D version first and treating a 3D scene as an optional enhancement (Phase 6). If you add it, load it with `next/dynamic` (`ssr: false`), and keep the open book as a normal HTML overlay so text stays crisp and selectable.
+The 3D shelf loads separately after the page is usable, only on devices that can handle it, and falls back to the CSS shelf for everyone else.
 
 ---
 
@@ -221,7 +219,7 @@ Not built yet: a soft page-rustle sound, muted by default, with a toggle (Phase 
 
 Resizing between spread and single-page mode keeps you on the same page.
 
-Sizes come from two CSS variables in `app/globals.css`, `--book-max-h` and `--spine-scale`, which change at each breakpoint.
+Sizes come from two CSS variables in `app/globals.css`, `--book-max-h` and `--spine-scale`, which change at each breakpoint. The 3D shelf measures this CSS layout, so it follows the same sizes.
 
 ### 4.5 Accessibility (built in from the start)
 - Each book is a `<button>` with `aria-label="Open Projects book"`. The open book is a native modal `<dialog>`, so the browser traps focus and makes the shelf behind it inert. `Esc`, the "Return to shelf" button, clicking the backdrop and the browser back button all close it, and focus returns to the spine.
@@ -249,6 +247,24 @@ This makes links shareable, lets the browser back button close the book, and all
 - **Unknown ids** (`?book=nope`) just show the shelf.
 
 Only the small part that reads the URL sits inside `<Suspense>`, so the shelf is still prerendered as static HTML.
+
+### 4.7 The 3D shelf (`components/shelf3d/`)
+
+On capable devices a real 3D bookcase is drawn over the CSS shelf: wood grain, depth, books with thickness and page edges, a warm lamp casting soft shadows from the top-left, a candle whose flickering light warms the books beside it, a gently swaying plant, and dust drifting in the lamplight.
+
+**How it lines up with the page.** `layout.ts` measures the CSS shelf (its parts are marked with `data-shelf`, `data-book-id` and `data-decor`), and the camera is placed so that the plane z = 0 matches the page pixel for pixel (`lib/shelf3d.ts`). Each 3D book's spine sits exactly behind its HTML button.
+
+**The HTML buttons still do everything.** In 3D mode (`[data-shelf-3d]` in `globals.css`) the spines become invisible buttons on top of the canvas. They take hover, clicks, keyboard focus and screen readers, and still show the subtitle plaque and focus ring; the scene just watches them. A hovered or focused book springs out of its slot (a leaning book straightens up).
+
+**Hand-off to the open book.** The scene registers a "spine projector" with `Library`, which reports where a 3D spine appears on screen, pulled out or not. The open-book flight takes off from (and lands back on) the 3D book, which hides while the book is away.
+
+**Who gets it.** `shouldUse3D()` turns it on only with fast WebGL 2 (not a software renderer), no reduced motion, no data saver, at least 2 GB of memory and 4 cores where the browser reports them. Everyone else, and anyone whose GPU drops the WebGL context or hits an error, gets the CSS shelf, which works identically. `localStorage.setItem("shelf-3d", "on" | "off")` forces it either way.
+
+**First visit.** The camera starts a little further back and lower and settles onto the shelf over about 1.4 s, timed by drawn frames so a slow first frame can't skip it. It plays once (`localStorage` "shelf-intro-seen").
+
+**Phones and tablets** get a lighter scene: lower resolution, smaller shadow maps, no dust or mouse parallax, and it only redraws when something changes. Desktops redraw continuously for the candle and dust, but stop when the shelf is scrolled out of view, the tab is hidden, or a book is open.
+
+**Cost.** Three.js and React Three Fiber are a separate ~240 KB (gzipped) download that starts after the page is interactive; the page's own JavaScript grew by about 2 KB. There are no texture files: wood, spines, page edges and dust are drawn on canvases, with the spine titles in the page's own Cinzel.
 
 ---
 
@@ -286,7 +302,12 @@ portfolio/
 │  │     ├─ ProjectSummaryPage.tsx, ContactPage.tsx
 │  │     └─ EndPage.tsx      # "Finis", back to the shelf or the contents
 │  ├─ ReadingRoom.tsx        # every book as plain text, below the shelf
-│  └─ scene3d/               # (optional, Phase 6) R3F shelf scene
+│  └─ shelf3d/               # the 3D bookshelf (Phase 6)
+│     ├─ Shelf3D.tsx         # decides 3D or CSS, loads the scene, falls back on errors
+│     ├─ ShelfScene.tsx      # canvas, measuring, hover/focus bridge, hand-off projector
+│     ├─ parts.tsx           # case, books, plant, candle, book stack, dust, lights, camera
+│     ├─ layout.ts           # measures the CSS shelf
+│     └─ textures.ts         # wood, spines, page edges, dust (drawn on canvases)
 ├─ content/
 │  ├─ site.ts                # your name, role and description
 │  ├─ shelf.ts               # which book/decoration stands where
@@ -296,6 +317,8 @@ portfolio/
 │  ├─ roman.ts               # chapter numbers as numerals
 │  ├─ shelf.ts               # spine width from page count
 │  ├─ siteUrl.ts             # the site's public address
+│  ├─ shelf3d.ts             # 3D shelf maths: camera, projection, spring, who gets 3D
+│  ├─ palette.ts             # theme colours as plain values (preview image, 3D shelf)
 │  └─ bookLayout.ts          # open-book size and poses (shelf, closed, open)
 ├─ types/book.ts
 ├─ public/
@@ -353,11 +376,14 @@ portfolio/
 - [ ] Lighthouse audit (aim for ≥ 90 in every category); run `npx lighthouse http://localhost:3000` against `npm run build && npm start`
 - [x] ~~Sound effects~~ (decided against)
 
-### Phase 6 — Optional: 3D scene with Three.js
-- [ ] `@react-three/fiber` + `@react-three/drei`, loaded with `next/dynamic({ ssr: false })` and only on capable devices
-- [ ] Model the shelf and books as boxes with wood and leather textures, warm point lighting, and slight camera parallax
-- [ ] Clicking a 3D book triggers the **same** HTML `OpenBook` overlay (the 3D book animates toward the camera, then the HTML book takes over)
-- [ ] Keep the CSS shelf as the fallback for low-power devices, reduced motion, and no WebGL
+### Phase 6 — 3D bookshelf with Three.js ✅
+- [x] Three.js + React Three Fiber, loaded with `next/dynamic({ ssr: false })` after the page is interactive, only on capable devices (`shouldUse3D`)
+- [x] A 3D bookcase built from measurements of the CSS shelf: generated wood, leather spines with gold titles, page edges, plant, candle, book stack
+- [x] Lamp light with soft shadows, a flickering candle light, swaying plant, dust in the lamplight, mouse parallax, first-visit camera move
+- [x] Hover/focus pull-out via the HTML buttons; the open book takes off from and lands on the 3D book
+- [x] CSS shelf fallback for no/slow WebGL, reduced motion, data saver, low memory, lost GPU context or errors
+- [x] Lighter mode on phones; pauses when off screen, hidden, or behind an open book
+- [x] Tests for the maths and device rule; browser checks of 3D, fallbacks, hand-off and page turning
 
 ### Phase 7 — Deploy
 - [ ] Push to GitHub and import into Vercel. Link previews and the sitemap use Vercel's production domain automatically
@@ -382,8 +408,15 @@ npm run lint        # ESLint
 npm test            # unit tests (Vitest)
 npm run test:watch  # tests in watch mode
 npm run build       # production build
-# optional, Phase 6:
-npm install three @react-three/fiber @react-three/drei
+```
+
+To see the shelf a particular way on your machine, run this in the browser console and reload:
+
+```js
+localStorage.setItem("shelf-3d", "on");  // force the 3D shelf (wherever WebGL works)
+localStorage.setItem("shelf-3d", "off"); // force the CSS shelf
+localStorage.removeItem("shelf-3d");     // automatic
+localStorage.removeItem("shelf-intro-seen"); // replay the first-visit camera move
 ```
 
 ### Filling in your content
@@ -410,6 +443,7 @@ The site's address comes from `NEXT_PUBLIC_SITE_URL` if set, otherwise Vercel's 
 
 - **Text readability comes first.** The book is the content. Keep the page body at 17px or more, with high contrast and at most about 60–70 characters per line.
 - **Don't hide information behind the novelty.** The reading room and deep links make sure recruiters can still find everything in seconds.
+- **The 3D shelf follows the CSS shelf.** It's built from measurements of the CSS layout, so change the shelf in CSS/`content/shelf.ts` and the 3D version follows. Keep the `data-shelf`, `data-book-id` and `data-decor` markers in `Bookshelf.tsx`.
 - **Keep the first screen fitting.** On desktop the books are sized from the screen height (`--book-max-h` in `globals.css`) so both shelves, the heading and the reading-room link fit even on a 1366×768 laptop. If you add a shelf or make the heading taller, adjust that formula.
 - **Watch the 3D stacking context.** `overflow: hidden`, `filter`, or `opacity` on a parent of `preserve-3d` elements flattens the 3D effect. Put shadows and blur on sibling layers.
 - **No big shadows on moving 3D faces.** A large `box-shadow` on the cover or a page confuses Chrome's 3D layer sorting, and the pages show through the opening cover near the spine. The open book's shadows sit on flat planes at the back of the book instead.
