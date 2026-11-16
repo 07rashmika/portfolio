@@ -1,10 +1,10 @@
 import type { Page } from "@/types/book";
-import { PageLink, Paragraphs } from "./PageFrame";
+import { PageHeading, PageLink, Paragraphs, type HeadingLevel } from "./PageFrame";
 
-export function ProjectSummaryPage({ page }: { page: Extract<Page, { kind: "project-summary" }> }) {
+export function ProjectSummaryPage({ page, level = 3 }: { page: Extract<Page, { kind: "project-summary" }>; level?: HeadingLevel }) {
   return (
     <div className="text-[1.05rem] leading-relaxed">
-      <h3 className="font-heading text-2xl leading-tight font-semibold sm:text-3xl">{page.title}</h3>
+      <PageHeading level={level} className="font-heading text-2xl leading-tight font-semibold sm:text-3xl">{page.title}</PageHeading>
       {page.year && <p className="mt-1 font-heading text-lg text-ink-faded italic">{page.year}</p>}
 
       <div className="mt-4">

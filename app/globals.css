@@ -47,7 +47,10 @@
 
 @media (width >= 64rem) {
   :root {
-    --book-max-h: 15rem;
+    /* Desktop screens are often short (laptops): fit both shelves, the heading and the reading-room
+       link on the first screen. ~360px is everything that isn't book (heading, frame, planks, spacing);
+       each shelf row is 1.2 book-heights tall (the books plus a fifth above them). */
+    --book-max-h: clamp(7rem, calc((100dvh - 360px) / 2.4), 15rem);
     --spine-scale: 1;
   }
 }
@@ -169,6 +172,29 @@ body {
     0 1px 0 rgb(0 0 0 / 0.55),
     0 -1px 0 rgb(255 230 170 / 0.15);
   transition: color 200ms;
+}
+
+/* A book on the shelf. A leaning book keeps its tilt (--lean); hover or keyboard focus pulls the
+   book up and towards you, with a slight overshoot like a spring. */
+.book-spine {
+  transform-origin: left bottom;
+  transform: rotate(var(--lean, 0deg));
+  transition:
+    transform 420ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    filter 200ms;
+}
+
+.book-spine:hover,
+.book-spine:focus-visible {
+  transform: translateY(-14px) scale(1.03) rotate(var(--lean, 0deg));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .book-spine:hover,
+  .book-spine:focus-visible {
+    transform: rotate(var(--lean, 0deg));
+    filter: brightness(1.2);
+  }
 }
 
 .spine-ornament {
@@ -306,6 +332,12 @@ body {
   }
   70% {
     transform: scale(1.03, 0.96) rotate(-0.5deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
   }
 }
 

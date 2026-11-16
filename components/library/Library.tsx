@@ -1,13 +1,16 @@
 "use client";
 
-import { AnimatePresence } from "motion/react";
+import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { createContext, Suspense, useCallback, useContext, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
-import { OpenBook } from "@/components/book/OpenBook";
 import { getBook } from "@/content/books";
 import type { SpineBox } from "@/lib/bookLayout";
 import type { Book } from "@/types/book";
+
+// The open book and its animations load separately, after the page is interactive, so the
+// shelf doesn't wait for them. Nothing is lost: until a book is opened the overlay renders nothing.
+const BookOverlay = dynamic(() => import("@/components/book/BookOverlay"), { ssr: false });
 
 type Spine = { element: HTMLElement; rotate: number };
 
@@ -124,19 +127,14 @@ function OpenBookFromUrl({ measureSpine, onDepart, onReturn, onPageChange, onReq
   const initialPageIndex = Number.isInteger(page) && page > 0 ? page : 1;
 
   return (
-    <AnimatePresence>
-      {book && (
-        <OpenBook
-          key={book.id}
-          book={book}
-          initialPageIndex={initialPageIndex}
-          measureSpine={() => measureSpine(book.id)}
-          onDepart={() => onDepart(book.id)}
-          onReturn={() => onReturn(book.id)}
-          onPageChange={(pageIndex) => onPageChange(book.id, pageIndex)}
-          onRequestClose={onRequestClose}
-        />
-      )}
-    </AnimatePresence>
+    <BookOverlay
+      book={book}
+      initialPageIndex={initialPageIndex}
+      measureSpine={measureSpine}
+      onDepart={onDepart}
+      onReturn={onReturn}
+      onPageChange={onPageChange}
+      onRequestClose={onRequestClose}
+    />
   );
 }
